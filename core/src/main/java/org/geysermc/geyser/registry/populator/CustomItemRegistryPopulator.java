@@ -168,7 +168,9 @@ public class CustomItemRegistryPopulator {
         NbtMapBuilder itemProperties = NbtMap.builder();
         NbtMapBuilder componentBuilder = NbtMap.builder();
 
-        setupBasicItemInfo(javaItem.defaultMaxDamage(), javaItem.defaultMaxStackSize(), mapping.getToolType() != null || customItemData.displayHandheld(), customItemData, itemProperties, componentBuilder, protocolVersion);
+        String name = customItemData.name();
+
+        setupBasicItemInfo(javaItem.defaultMaxDamage(), (name.startsWith("potion_") || name.startsWith("splash_potion_") || name.startsWith("temp_stack_")) ? 64 : javaItem.defaultMaxStackSize(), mapping.getToolType() != null || customItemData.displayHandheld(), customItemData, itemProperties, componentBuilder, protocolVersion);
 
         boolean canDestroyInCreative = true;
         if (mapping.getToolType() != null) { // This is not using the isTool boolean because it is not just a render type here.

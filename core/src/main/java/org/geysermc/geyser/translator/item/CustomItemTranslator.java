@@ -34,6 +34,7 @@ import org.cloudburstmc.protocol.bedrock.data.definitions.ItemDefinition;
 import org.geysermc.geyser.api.item.custom.CustomItemOptions;
 import org.geysermc.geyser.api.util.TriState;
 import org.geysermc.geyser.registry.type.ItemMapping;
+import org.geysermc.mcprotocollib.protocol.data.game.item.component.PotionContents;
 
 import java.util.List;
 import java.util.OptionalInt;
@@ -56,7 +57,10 @@ public final class CustomItemTranslator {
         // TODO 1.21.4
         float customModelDataInt = 0;
         CustomModelData customModelData = components.get(DataComponentType.CUSTOM_MODEL_DATA);
-        if (customModelData != null) {
+        PotionContents potionContents = components.get(DataComponentType.POTION_CONTENTS);
+        if (potionContents != null) {
+            customModelDataInt = Math.max(0,potionContents.getCustomColor());
+        } else if (customModelData != null) {
             if (!customModelData.floats().isEmpty()) {
                 customModelDataInt = customModelData.floats().get(0);
             }
