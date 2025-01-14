@@ -57,12 +57,29 @@ public final class CustomItemTranslator {
         // TODO 1.21.4
         float customModelDataInt = 0;
         CustomModelData customModelData = components.get(DataComponentType.CUSTOM_MODEL_DATA);
-        PotionContents potionContents = components.get(DataComponentType.POTION_CONTENTS);
-        if (potionContents != null) {
-            customModelDataInt = Math.max(0,potionContents.getCustomColor());
-        } else if (customModelData != null) {
+        if (customModelData != null) {
             if (!customModelData.floats().isEmpty()) {
                 customModelDataInt = customModelData.floats().get(0);
+            }
+        }
+
+        // 盘灵无界药水颜色映射临时实现
+        int customPotionColor = -1, customPotionR = -1, customPotionG = -1, customPotionB = -1;
+        double customPotionPercentR = 1, customPotionPercentG = 1, customPotionPercentB = 1;
+        double colorDistanceClose = -1;
+        int colorDistanceCloseIndex = -1;
+        PotionContents potionContents = components.get(DataComponentType.POTION_CONTENTS);
+        if (potionContents != null) {
+            customPotionColor = potionContents.getCustomColor();
+            if (customPotionColor > -1) {
+                customPotionR = customPotionColor / 65536;
+                customPotionG = customPotionColor / 256 % 256;
+                customPotionB = customPotionColor % 256;
+                // 加权值，偏向的色调为最小值1，其次的色调会更大，以增加其距离，不存在的色调为最大值2
+                int maxValue = Math.max(Math.max(customPotionR, customPotionG), customPotionB);
+                customPotionPercentR = 2 - (double) customPotionR / maxValue;
+                customPotionPercentG = 2 - (double) customPotionG / maxValue;
+                customPotionPercentB = 2 - (double) customPotionB / maxValue;
             }
         }
 
@@ -70,7 +87,8 @@ public final class CustomItemTranslator {
         int damage = !checkDamage ? 0 : components.getOrDefault(DataComponentType.DAMAGE, 0);
         boolean unbreakable = checkDamage && !isDamaged(components, damage);
 
-        for (Pair<CustomItemOptions, ItemDefinition> mappingTypes : customMappings) {
+        for (int mappingIndex = 0; mappingIndex < customMappings.size(); mappingIndex ++) {
+            Pair<CustomItemOptions, ItemDefinition> mappingTypes = customMappings.get(mappingIndex);
             CustomItemOptions options = mappingTypes.key();
 
             // Code note: there may be two or more conditions that a custom item must follow, hence the "continues"
@@ -101,8 +119,29 @@ public final class CustomItemTranslator {
             }
 
             OptionalInt customModelDataOption = options.customModelData();
-            if (customModelDataOption.isPresent() && customModelDataInt < customModelDataOption.getAsInt()) {
-                continue;
+            if (customModelDataOption.isPresent()) {
+                int optionData = customModelDataOption.getAsInt();
+                // 盘灵无界药水颜色映射临时实现
+                if (customPotionColor != -1) {
+                    // 如果数值相同则直接匹配，停止颜色距离计算
+                    if (customPotionColor != optionData) {
+                        // 当前项的颜色
+                        int optionR = optionData / 65536;
+                        int optionG = optionData / 256 % 256;
+                        int optionB = optionData % 256;
+                        // 基于 RGB 的欧氏距离比较（根据颜色占比加权）
+                        double colorDistance = Math.pow((optionR - customPotionR) * customPotionPercentR, 2) +
+                            Math.pow((optionG - customPotionG) * customPotionPercentG, 2) +
+                            Math.pow((optionB - customPotionB) * customPotionPercentB, 2);
+                        if (colorDistanceCloseIndex == -1 || colorDistanceClose > colorDistance) {
+                            colorDistanceClose = colorDistance;
+                            colorDistanceCloseIndex = mappingIndex;
+                        }
+                        continue;
+                    }
+                } else if (customModelDataInt < optionData) {
+                    continue;
+                }
             }
 
             if (options.defaultItem()) {
@@ -110,6 +149,15 @@ public final class CustomItemTranslator {
             }
 
             return mappingTypes.value();
+        }
+
+        // 盘灵无界药水颜色映射临时实现
+        if (colorDistanceCloseIndex != -1) {
+            // 根据遍历得到的最近值返回目标
+            Pair<CustomItemOptions, ItemDefinition> mappingTypes = customMappings.get(colorDistanceCloseIndex);
+            if (!mappingTypes.key().defaultItem()) {
+                return mappingTypes.value();
+            }
         }
 
         return null;
