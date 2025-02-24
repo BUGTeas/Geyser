@@ -68,7 +68,7 @@ public final class CustomItemTranslator {
         double customPotionPercentR = 1, customPotionPercentG = 1, customPotionPercentB = 1;
         double colorDistanceClose = -1;
         int colorDistanceCloseIndex = -1;
-        PotionContents potionContents = components.get(DataComponentType.POTION_CONTENTS);
+        PotionContents potionContents = components.get(DataComponentTypes.POTION_CONTENTS);
         if (potionContents != null) {
             customPotionColor = potionContents.getCustomColor();
             if (customPotionColor > -1) {
