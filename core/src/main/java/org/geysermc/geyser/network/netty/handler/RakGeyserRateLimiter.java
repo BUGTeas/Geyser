@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022 GeyserMC. http://geysermc.org
+ * Copyright (c) 2019-2025 GeyserMC. http://geysermc.org
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,27 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.geyser.translator.entity;
+package org.geysermc.geyser.network.netty.handler;
 
-import org.geysermc.geyser.entity.type.Entity;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.EntityMetadata;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.MetadataType;
+import io.netty.channel.Channel;
+import org.cloudburstmc.netty.channel.raknet.RakServerChannel;
+import org.cloudburstmc.netty.handler.codec.raknet.server.RakServerRateLimiter;
+import org.geysermc.geyser.GeyserImpl;
+import org.geysermc.geyser.session.SessionManager;
 
-import java.util.function.BiConsumer;
+import java.net.InetAddress;
 
-/**
- * Translates a given Java {@link EntityMetadata} into a similar/same construct for Bedrock
- */
-public record EntityMetadataTranslator<E extends Entity, T, EM extends EntityMetadata<T, ? extends MetadataType<T>>>(
-        MetadataType<T> acceptedType,
-        BiConsumer<E, EM> translateFunction) {
+public class RakGeyserRateLimiter extends RakServerRateLimiter {
+    public static final String NAME = "rak-geyser-rate-limiter";
+    private final SessionManager sessionManager;
 
-    public void translate(E entity, EM metadata) {
-        this.translateFunction.accept(entity, metadata);
+    public RakGeyserRateLimiter(Channel channel) {
+        super((RakServerChannel) channel);
+        this.sessionManager = GeyserImpl.getInstance().getSessionManager();
+    }
+
+    @Override
+    protected int getAddressMaxPacketCount(InetAddress address) {
+        return super.getAddressMaxPacketCount(address) * sessionManager.getAddressMultiplier(address);
     }
 }
