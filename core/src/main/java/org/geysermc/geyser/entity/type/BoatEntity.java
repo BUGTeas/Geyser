@@ -77,11 +77,6 @@ public class BoatEntity extends Entity implements Leashable, Tickable {
         super(session, entityId, geyserId, uuid, definition, position.add(0d, definition.offset(), 0d), motion, yaw + 90, 0, yaw + 90);
         this.variant = variant;
 
-        // TODO remove once 1.21.40 is dropped
-        if (variant == BoatVariant.PALE_OAK && GameProtocol.isPreWinterDrop(session)) {
-            variant = BoatVariant.BIRCH;
-        }
-
         dirtyMetadata.put(EntityDataTypes.VARIANT, variant.ordinal());
 
         // Required to be able to move on land 1.16.200+ or apply gravity not in the water 1.16.100+
@@ -215,11 +210,19 @@ public class BoatEntity extends Entity implements Leashable, Tickable {
 
         if (isPaddlingLeft) {
             paddleTimeLeft += ROWING_SPEED;
-            sendAnimationPacket(session, rower, AnimatePacket.Action.ROW_LEFT, paddleTimeLeft);
+            if (GameProtocol.is1_21_80orHigher(session)) {
+                dirtyMetadata.put(EntityDataTypes.ROW_TIME_LEFT, paddleTimeLeft);
+            } else {
+                sendAnimationPacket(session, rower, AnimatePacket.Action.ROW_LEFT, paddleTimeLeft);
+            }
         }
         if (isPaddlingRight) {
             paddleTimeRight += ROWING_SPEED;
-            sendAnimationPacket(session, rower, AnimatePacket.Action.ROW_RIGHT, paddleTimeRight);
+            if (GameProtocol.is1_21_80orHigher(session)) {
+                dirtyMetadata.put(EntityDataTypes.ROW_TIME_RIGHT, paddleTimeRight);
+            } else {
+                sendAnimationPacket(session, rower, AnimatePacket.Action.ROW_RIGHT, paddleTimeRight);
+            }
         }
     }
 
